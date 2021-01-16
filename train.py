@@ -9,40 +9,38 @@ from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 from azureml.core.run import Run
 from azureml.data.dataset_factory import TabularDatasetFactory
-from azureml.core import Dataset, Datastore
-from azureml.data.datapath import DataPath
-    
-dataset = Dataset.Tabular.from_delimited_files(path=datastore_path)
-print(dataset.to_pandas_dataframe())
-dataset = Dataset.Tabular.from_delimited_files(path=datastore_path,
-                                                  support_multi_line=True)
-# will use lines 15-17 later into pipeline 
+
+
+
+
+
+
 # TODO: Create TabularDataset using TabularDatasetFactory....see line 15 AA 1/15
 # Data is located at:
 # "https://automlsamplenotebookdata.blob.core.windows.net/automl-sample-notebook-data/bankmarketing_train.csv"
 
-ds = bank_data
-#Line 24 is a variable? I named it per python conventions AA 1/15
+from azureml.core.dataset import Dataset
+web_path = 'https://automlsamplenotebookdata.blob.core.windows.net/automl-sample-notebook-data/bankmarketing_train.csv'
+bank_ds = Dataset.Tabular.from_delimited_files(path=web_path,
+                                                  support_multi_line=True)
 
-x, y = clean_data(ds)
+x, y = clean_data(bank_ds)
+
 
 # TODO: Split data into train and test sets.
-
 ### YOUR CODE HERE ###a
 
-output_data = PipelineData("output_data", datastore=blob_store)
+from azureml.core import ScriptRunConfig
+src = ScriptRunConfig(source_directory=script_folder,
+                      script='train.py',
+                      arguments=['--input-data', bank_ds.as_named_input('bank')],
+                      compute_target=compute_target,
+                      environment=myenv)
+                             
+# Submit the run configuration for your training run
+run = experiment.submit(src)
+run.wait_for_completion(show_output=True) 
 
-input_named = input_data.as_named_input('input')
-
-steps = [ PythonScriptStep(
-    script_name="train.py",
-    arguments=["--input", input_named.as_download(),
-        "--output", output_data],
-    inputs=[input_data],
-    outputs=[output_data],
-    compute_target=compute_target,
-    source_directory="myfolder"
-) ]
 
 pipeline = Pipeline(workspace=ws, steps=steps)
 
