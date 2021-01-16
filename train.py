@@ -9,18 +9,42 @@ from sklearn.preprocessing import OneHotEncoder
 import pandas as pd
 from azureml.core.run import Run
 from azureml.data.dataset_factory import TabularDatasetFactory
-
-# TODO: Create TabularDataset using TabularDatasetFactory
+from azureml.core import Dataset, Datastore
+from azureml.data.datapath import DataPath
+    
+dataset = Dataset.Tabular.from_delimited_files(path=datastore_path)
+print(dataset.to_pandas_dataframe())
+dataset = Dataset.Tabular.from_delimited_files(path=datastore_path,
+                                                  support_multi_line=True)
+# will use lines 15-17 later into pipeline 
+# TODO: Create TabularDataset using TabularDatasetFactory....see line 15 AA 1/15
 # Data is located at:
 # "https://automlsamplenotebookdata.blob.core.windows.net/automl-sample-notebook-data/bankmarketing_train.csv"
 
-ds = ### YOUR CODE HERE ###
+ds = bank_data
+#Line 24 is a variable? I named it per python conventions AA 1/15
 
 x, y = clean_data(ds)
 
 # TODO: Split data into train and test sets.
 
 ### YOUR CODE HERE ###a
+
+output_data = PipelineData("output_data", datastore=blob_store)
+
+input_named = input_data.as_named_input('input')
+
+steps = [ PythonScriptStep(
+    script_name="train.py",
+    arguments=["--input", input_named.as_download(),
+        "--output", output_data],
+    inputs=[input_data],
+    outputs=[output_data],
+    compute_target=compute_target,
+    source_directory="myfolder"
+) ]
+
+pipeline = Pipeline(workspace=ws, steps=steps)
 
 run = Run.get_context()
 
